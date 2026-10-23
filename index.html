@@ -1,0 +1,1269 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Portal da Biblioteca - Colégio Estadual Unidade Polo</title>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Supabase JS Client v2 CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        prNavy: '#0B3C5D',
+                        prGreen: '#008A45',
+                        prYellow: '#F59E0B',
+                        prLightBg: '#F8FAFC'
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #f1f1f1; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+    </style>
+</head>
+<body class="bg-slate-100 text-slate-800 min-h-screen flex flex-col justify-between">
+
+    <!-- TOAST NOTIFICATIONS -->
+    <div id="toast-container" class="fixed top-5 right-5 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+    <!-- CABEÇALHO INSTITUCIONAL SEED-PR / UNIDADE POLO -->
+    <header class="bg-prNavy text-white shadow-lg sticky top-0 z-40">
+        <!-- Barra de Topo Governamental -->
+        <div class="bg-emerald-900/40 border-b border-emerald-500/20 text-xs py-1.5 px-4">
+            <div class="max-w-7xl mx-auto flex flex-wrap justify-between items-center gap-2">
+                <div class="flex items-center space-x-3">
+                    <span class="font-bold tracking-wider text-emerald-300">GOVERNO DO ESTADO DO PARANÁ</span>
+                    <span class="text-slate-400">|</span>
+                    <span>SEED-PR - NRE Apucarana</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <!-- Status do Supabase -->
+                    <button onclick="openConfigModal()" id="status-badge-btn" class="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-500/20 text-amber-300 border border-amber-500/30 hover:bg-amber-500/30 transition">
+                        <span id="status-dot" class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
+                        <span id="status-text">🟡 Modo de Demonstração (Local)</span>
+                    </button>
+                    <button onclick="openSqlModal()" class="flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-600 transition">
+                        <i class="fa-solid fa-database text-xs text-blue-400"></i> Script SQL
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Banner Principal da Escola -->
+        <div class="max-w-7xl mx-auto px-4 py-4 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div class="flex items-center gap-4">
+                <div class="w-14 h-14 bg-white rounded-2xl flex items-center justify-center text-prNavy font-extrabold text-2xl shadow-inner border-2 border-prGreen">
+                    <i class="fa-solid fa-book-bookmark text-prGreen"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl sm:text-2xl font-black tracking-tight leading-tight">COLÉGIO ESTADUAL UNIDADE POLO</h1>
+                    <p class="text-xs sm:text-sm text-slate-300 flex items-center gap-2">
+                        <span>Ensino Fundamental, Médio e Profissionalizante</span>
+                        <span>•</span>
+                        <span class="text-emerald-400 font-medium">Arapongas - PR</span>
+                    </p>
+                </div>
+            </div>
+            
+            <div class="flex items-center gap-2 bg-slate-900/50 p-2 rounded-xl border border-white/10">
+                <button onclick="openConfigModal()" class="px-3 py-1.5 bg-prGreen hover:bg-emerald-600 text-white rounded-lg text-xs font-semibold transition flex items-center gap-1.5 shadow">
+                    <i class="fa-solid fa-sliders"></i>
+                    <span>Configurar Supabase</span>
+                </button>
+                <button onclick="openCadastrarLivroModal()" class="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold rounded-lg text-xs transition flex items-center gap-1.5 shadow">
+                    <i class="fa-solid fa-plus"></i>
+                    <span>Novo Livro</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Barra de Navegação -->
+        <nav class="bg-slate-900/80 backdrop-blur border-t border-white/10">
+            <div class="max-w-7xl mx-auto px-4 flex overflow-x-auto gap-1 py-1 custom-scrollbar">
+                <button onclick="switchTab('acervo')" id="tab-acervo" class="nav-tab px-4 py-2.5 rounded-lg text-sm font-semibold flex items-center gap-2 whitespace-nowrap transition bg-prGreen text-white shadow">
+                    <i class="fa-solid fa-book-open"></i> Acervo da Biblioteca
+                </button>
+                <button onclick="switchTab('devolucao')" id="tab-devolucao" class="nav-tab px-4 py-2.5 rounded-lg text-sm font-medium flex items-center gap-2 whitespace-nowrap text-slate-300 hover:text-white hover:bg-white/10 transition">
+                    <i class="fa-solid fa-rotate-left"></i> Devolução de Livros
+                </button>
+                <button onclick="switchTab('aluno')" id="tab-aluno" class="nav-tab px-4 py-2.5 rounded-lg text-sm font-medium flex items-center gap-2 whitespace-nowrap text-slate-300 hover:text-white hover:bg-white/10 transition">
+                    <i class="fa-solid fa-user-graduate"></i> Portal do Aluno (CGM)
+                </button>
+                <button onclick="switchTab('resenhas')" id="tab-resenhas" class="nav-tab px-4 py-2.5 rounded-lg text-sm font-medium flex items-center gap-2 whitespace-nowrap text-slate-300 hover:text-white hover:bg-white/10 transition">
+                    <i class="fa-solid fa-comments"></i> Mural de Resenhas
+                </button>
+            </div>
+        </nav>
+    </header>
+
+    <!-- CONTEÚDO PRINCIPAL DA APLICAÇÃO -->
+    <main class="max-w-7xl mx-auto px-4 py-6 flex-1 w-full">
+
+        <!-- ABAS 1: ACERVO DA BIBLIOTECA -->
+        <section id="sec-acervo" class="space-y-6">
+            <!-- Header e Filtros do Acervo -->
+            <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200/80 flex flex-col md:flex-row gap-4 items-center justify-between">
+                <div class="w-full md:w-1/2 relative">
+                    <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-3.5 text-slate-400"></i>
+                    <input type="text" id="search-input" oninput="filterBooks()" placeholder="Buscar por título, autor, código Tombo ou palavras-chave..." class="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-prNavy focus:outline-none transition">
+                </div>
+                <div class="w-full md:w-auto flex flex-wrap gap-2 items-center">
+                    <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Curso / Filtro:</span>
+                    <select id="category-filter" onchange="filterBooks()" class="bg-slate-50 border border-slate-300 rounded-xl text-sm px-3 py-2 font-medium focus:ring-2 focus:ring-prNavy focus:outline-none">
+                        <option value="TODOS">Todas as Categorias</option>
+                        <option value="Técnico Dev. Sistemas">Técnico Dev. Sistemas</option>
+                        <option value="Técnico Adm.">Técnico Administração</option>
+                        <option value="Ensino Médio">Ensino Médio Geral</option>
+                        <option value="UEL/UEM">Vestibular UEL / UEM</option>
+                        <option value="Mangás">Mangás / HQs</option>
+                        <option value="Literatura">Literatura Geral</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Stats Rápidos -->
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center gap-3">
+                    <div class="p-3 bg-blue-100 text-prNavy rounded-lg font-bold text-xl"><i class="fa-solid fa-book"></i></div>
+                    <div>
+                        <p class="text-xs text-slate-500 font-medium">Obras Cadastradas</p>
+                        <p id="stat-total-obras" class="text-xl font-extrabold text-slate-800">0</p>
+                    </div>
+                </div>
+                <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center gap-3">
+                    <div class="p-3 bg-emerald-100 text-prGreen rounded-lg font-bold text-xl"><i class="fa-solid fa-check-circle"></i></div>
+                    <div>
+                        <p class="text-xs text-slate-500 font-medium">Exemplares Disponíveis</p>
+                        <p id="stat-disponiveis" class="text-xl font-extrabold text-slate-800">0</p>
+                    </div>
+                </div>
+                <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center gap-3">
+                    <div class="p-3 bg-amber-100 text-amber-700 rounded-lg font-bold text-xl"><i class="fa-solid fa-hand-holding-hand"></i></div>
+                    <div>
+                        <p class="text-xs text-slate-500 font-medium">Empréstimos Ativos</p>
+                        <p id="stat-emprestados" class="text-xl font-extrabold text-slate-800">0</p>
+                    </div>
+                </div>
+                <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center gap-3">
+                    <div class="p-3 bg-purple-100 text-purple-700 rounded-lg font-bold text-xl"><i class="fa-solid fa-comments"></i></div>
+                    <div>
+                        <p class="text-xs text-slate-500 font-medium">Resenhas Publicadas</p>
+                        <p id="stat-resenhas" class="text-xl font-extrabold text-slate-800">0</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Grid de Livros -->
+            <div id="books-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- Inserido dinamicamente via JavaScript -->
+            </div>
+        </section>
+
+        <!-- ABA 2: DEVOLUÇÃO DE LIVROS -->
+        <section id="sec-devolucao" class="hidden space-y-6">
+            <div class="max-w-2xl mx-auto bg-white p-6 sm:p-8 rounded-2xl shadow-md border border-slate-200">
+                <div class="text-center mb-6">
+                    <div class="inline-flex p-3 bg-emerald-100 text-prGreen rounded-full mb-2">
+                        <i class="fa-solid fa-arrow-left-rotate text-2xl"></i>
+                    </div>
+                    <h2 class="text-2xl font-bold text-prNavy">Devolução e Baixa no Sistema</h2>
+                    <p class="text-sm text-slate-500">Insira o CGM do estudante e o Tombo do livro para registrar a devolução com atualização imediata no banco de dados.</p>
+                </div>
+
+                <form id="form-devolucao" onsubmit="handleDevolucao(event)" class="space-y-4">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 uppercase mb-1">CGM do Aluno *</label>
+                            <input type="text" id="dev-cgm" required placeholder="Ex: 20241098" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-prNavy focus:outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Código Tombo do Livro *</label>
+                            <input type="text" id="dev-tombo" required placeholder="Ex: TB-1001" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-prNavy focus:outline-none">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Estado de Conservação na Entrega *</label>
+                        <select id="dev-estado" required class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-prNavy focus:outline-none">
+                            <option value="Excelente">Excelente (Sem marcas)</option>
+                            <option value="Bom" selected>Bom (Marcas normais de manuseio)</option>
+                            <option value="Regular">Regular (Páginas amareladas/pequeno desgaste)</option>
+                            <option value="Danificado">Danificado (Necessita reparo/capa solta)</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Observações da Biblioteca</label>
+                        <textarea id="dev-obs" rows="2" placeholder="Opcional: Anotações adicionais..." class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-prNavy focus:outline-none"></textarea>
+                    </div>
+
+                    <button type="submit" class="w-full py-3 bg-prGreen hover:bg-emerald-700 text-white font-bold rounded-xl shadow-md transition flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-check-circle"></i> Confirmar Devolução e Emitir Comprovante
+                    </button>
+                </form>
+            </div>
+        </section>
+
+        <!-- ABA 3: PORTAL DO ALUNO POR CGM -->
+        <section id="sec-aluno" class="hidden space-y-6">
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 max-w-xl mx-auto">
+                <h2 class="text-xl font-bold text-prNavy mb-2 flex items-center gap-2">
+                    <i class="fa-solid fa-address-card text-prGreen"></i> Consulta de Empréstimos por Aluno
+                </h2>
+                <p class="text-xs text-slate-500 mb-4">Digite o CGM do aluno para visualizar os livros pendentes, prazos e solicitar renovação de +7 dias.</p>
+                <div class="flex gap-2">
+                    <input type="text" id="aluno-cgm-input" placeholder="Digite o CGM (ex: 20241098)" class="flex-1 px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-prNavy focus:outline-none">
+                    <button onclick="buscarEmprestimosAluno()" class="px-5 py-2.5 bg-prNavy hover:bg-slate-800 text-white font-bold rounded-xl text-sm transition">
+                        Consultar
+                    </button>
+                </div>
+            </div>
+
+            <!-- Resultado da Consulta -->
+            <div id="aluno-resultados" class="hidden max-w-4xl mx-auto space-y-4">
+                <div id="aluno-info-card" class="bg-emerald-900 text-white p-5 rounded-2xl shadow flex justify-between items-center">
+                    <div>
+                        <h3 id="aluno-nome-display" class="font-bold text-lg">---</h3>
+                        <p id="aluno-turma-display" class="text-xs text-emerald-200">CGM: ---</p>
+                    </div>
+                    <span class="px-3 py-1 bg-emerald-800 text-emerald-100 text-xs rounded-full font-medium">Aluno Ativo</span>
+                </div>
+
+                <div class="bg-white rounded-2xl shadow border border-slate-200 overflow-hidden">
+                    <div class="p-4 bg-slate-50 border-b border-slate-200 font-bold text-slate-700 text-sm flex justify-between items-center">
+                        <span>Empréstimos Ativos no Sistema</span>
+                        <span id="aluno-count-badge" class="text-xs bg-prNavy text-white px-2.5 py-0.5 rounded-full">0 livros</span>
+                    </div>
+                    <div id="aluno-emprestimos-list" class="divide-y divide-slate-100">
+                        <!-- Lista dinâmica -->
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ABA 4: MURAL DE RESENHAS -->
+        <section id="sec-resenhas" class="hidden space-y-6">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- Formulário de Nova Resenha -->
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 h-fit">
+                    <h2 class="text-lg font-bold text-prNavy mb-4 flex items-center gap-2">
+                        <i class="fa-solid fa-pen-nib text-amber-500"></i> Publicar Resenha de Livro
+                    </h2>
+                    <form onsubmit="handleNovaResenha(event)" class="space-y-4">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Nome Completo *</label>
+                            <input type="text" id="res-nome" required placeholder="Seu nome" class="w-full px-3.5 py-2 bg-slate-50 border border-slate-300 rounded-xl text-sm">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Sua Turma *</label>
+                            <input type="text" id="res-turma" required placeholder="Ex: 3º Dev. Sistemas" class="w-full px-3.5 py-2 bg-slate-50 border border-slate-300 rounded-xl text-sm">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Título do Livro *</label>
+                            <input type="text" id="res-livro" required placeholder="Nome do livro lido" class="w-full px-3.5 py-2 bg-slate-50 border border-slate-300 rounded-xl text-sm">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Avaliação (1 a 5 Estrelas)</label>
+                            <select id="res-nota" class="w-full px-3.5 py-2 bg-slate-50 border border-slate-300 rounded-xl text-sm text-amber-600 font-bold">
+                                <option value="5">⭐⭐⭐⭐⭐ (5/5 - Excelente)</option>
+                                <option value="4">⭐⭐⭐⭐ (4/5 - Muito Bom)</option>
+                                <option value="3">⭐⭐⭐ (3/5 - Bom)</option>
+                                <option value="2">⭐⭐ (2/5 - Regular)</option>
+                                <option value="1">⭐ (1/5 - Ruim)</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Comentário / Opinião *</label>
+                            <textarea id="res-comentario" rows="3" required placeholder="O que você achou deste livro?" class="w-full px-3.5 py-2 bg-slate-50 border border-slate-300 rounded-xl text-sm"></textarea>
+                        </div>
+                        <button type="submit" class="w-full py-2.5 bg-prNavy hover:bg-slate-800 text-white font-bold rounded-xl text-sm transition">
+                            Enviar Resenha
+                        </button>
+                    </form>
+                </div>
+
+                <!-- Feed de Resenhas -->
+                <div class="lg:col-span-2 space-y-4">
+                    <h2 class="text-lg font-bold text-prNavy flex items-center justify-between">
+                        <span>Resenhas da Comunidade Escolar</span>
+                        <span class="text-xs text-slate-500 font-normal">Sua opinião ajuda outros alunos a escolherem boas leituras!</span>
+                    </h2>
+                    <div id="resenhas-container" class="space-y-4">
+                        <!-- Cards de Resenha dinâmicos -->
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- RODAPÉ DA INSTITUIÇÃO -->
+    <footer class="bg-prNavy text-slate-300 border-t border-slate-800 mt-10">
+        <div class="max-w-7xl mx-auto px-4 py-8 grid grid-cols-1 md:grid-cols-3 gap-6 text-sm">
+            <div>
+                <h3 class="text-white font-bold mb-2 flex items-center gap-2">
+                    <i class="fa-solid fa-school text-prGreen"></i> Colégio Estadual Unidade Polo
+                </h3>
+                <p class="text-xs text-slate-400 leading-relaxed">
+                    Rua Pavão, 831 - Centro<br>
+                    CEP: 86700-140 — Arapongas / PR<br>
+                    NRE Apucarana — Secretaria de Estado da Educação do Paraná
+                </p>
+            </div>
+            <div>
+                <h3 class="text-white font-bold mb-2 flex items-center gap-2">
+                    <i class="fa-solid fa-clock text-amber-400"></i> Horário da Biblioteca
+                </h3>
+                <p class="text-xs text-slate-400 leading-relaxed">
+                    <strong>Manhã:</strong> 07:30 às 11:45<br>
+                    <strong>Tarde:</strong> 13:15 às 17:30<br>
+                    <strong>Noite:</strong> 18:45 às 22:00
+                </p>
+            </div>
+            <div>
+                <h3 class="text-white font-bold mb-2 flex items-center gap-2">
+                    <i class="fa-solid fa-database text-emerald-400"></i> Integração Supabase
+                </h3>
+                <p class="text-xs text-slate-400 leading-relaxed mb-2">
+                    Conexão em tempo real habilitada para persistência de dados do acervo, devoluções e resenhas.
+                </p>
+                <button onclick="openConfigModal()" class="text-xs text-emerald-300 hover:underline font-semibold">
+                    ⚙️ Abrir Gerenciador de Banco de Dados
+                </button>
+            </div>
+        </div>
+        <div class="bg-slate-950 py-3 text-center text-xs text-slate-500 border-t border-slate-900">
+            © 2026 Portal de Biblioteca Escolar — Colégio Estadual Unidade Polo (Arapongas - PR)
+        </div>
+    </footer>
+
+    <!-- MODAL DE CONFIGURAÇÃO DO SUPABASE -->
+    <div id="modal-config" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full p-6 border border-slate-200">
+            <div class="flex justify-between items-center mb-4 border-b border-slate-100 pb-3">
+                <h3 class="text-lg font-bold text-prNavy flex items-center gap-2">
+                    <i class="fa-solid fa-plug text-emerald-500"></i> Configurar Conexão Supabase
+                </h3>
+                <button onclick="closeConfigModal()" class="text-slate-400 hover:text-slate-600 font-bold">✕</button>
+            </div>
+            
+            <p class="text-xs text-slate-600 mb-4">
+                Cole abaixo suas credenciais do projeto Supabase. Os dados serão gravados com segurança no seu navegador (`localStorage`).
+            </p>
+
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">SUPABASE_URL</label>
+                    <input type="text" id="cfg-url" placeholder="https://dqvdocbqrqntkochtedi.supabase.co" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-mono">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">SUPABASE_ANON_KEY</label>
+                    <input type="password" id="cfg-key" placeholder="sb_publishable_3quleSJMkpt-PCWUNxe6Ng_lgIiREtw" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-mono">
+                </div>
+
+                <div id="cfg-status-message" class="p-3 rounded-xl text-xs hidden font-medium"></div>
+
+                <div class="flex gap-2 pt-2">
+                    <button onclick="testSupabaseConnection()" class="flex-1 py-2.5 bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold text-xs rounded-xl transition">
+                        <i class="fa-solid fa-vial"></i> Testar Conexão
+                    </button>
+                    <button onclick="saveSupabaseConfig()" class="flex-1 py-2.5 bg-prGreen hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow transition">
+                        <i class="fa-solid fa-floppy-disk"></i> Salvar e Conectar
+                    </button>
+                </div>
+
+                <button onclick="resetToDemoMode()" class="w-full py-2 bg-slate-100 hover:bg-amber-100 text-amber-800 border border-amber-300 font-semibold text-xs rounded-xl transition">
+                    Desconectar e Retornar ao Modo Demonstração (Local)
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL DO SCRIPT SQL -->
+    <div id="modal-sql" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-slate-900 text-slate-100 rounded-2xl shadow-2xl max-w-3xl w-full p-6 border border-slate-800 flex flex-col max-h-[85vh]">
+            <div class="flex justify-between items-center mb-3 border-b border-slate-800 pb-3">
+                <h3 class="text-base font-bold text-white flex items-center gap-2">
+                    <i class="fa-solid fa-code text-blue-400"></i> Script SQL para Criação das Tabelas no Supabase
+                </h3>
+                <button onclick="closeSqlModal()" class="text-slate-400 hover:text-white font-bold">✕</button>
+            </div>
+
+            <p class="text-xs text-slate-400 mb-3">
+                Execute o script abaixo no SQL Editor do seu Dashboard Supabase (`SQL Editor -> New Query`) para criar a estrutura e os registros iniciais (SEEDS).
+            </p>
+
+            <div class="relative flex-1 bg-slate-950 rounded-xl p-4 overflow-y-auto border border-slate-800 custom-scrollbar font-mono text-xs text-emerald-400">
+                <pre id="sql-code-block"></pre>
+            </div>
+
+            <div class="mt-4 flex justify-between items-center">
+                <span class="text-xs text-slate-400">Inclui tabelas: <code class="text-amber-400">livros</code>, <code class="text-amber-400">emprestimos</code>, <code class="text-amber-400">devolucoes</code>, <code class="text-amber-400">resenhas</code></span>
+                <button onclick="copySqlCode()" class="px-4 py-2 bg-prGreen hover:bg-emerald-600 text-white font-bold text-xs rounded-xl shadow transition flex items-center gap-2">
+                    <i class="fa-solid fa-copy"></i> Copiar Script SQL
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL NOVO LIVRO -->
+    <div id="modal-cadastrar-livro" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full p-6 border border-slate-200">
+            <div class="flex justify-between items-center mb-4 border-b border-slate-100 pb-3">
+                <h3 class="text-lg font-bold text-prNavy flex items-center gap-2">
+                    <i class="fa-solid fa-book text-amber-500"></i> Cadastrar Novo Livro no Acervo
+                </h3>
+                <button onclick="closeCadastrarLivroModal()" class="text-slate-400 hover:text-slate-600 font-bold">✕</button>
+            </div>
+
+            <form onsubmit="handleCadastrarLivro(event)" class="space-y-3">
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Tombo / Código *</label>
+                        <input type="text" id="cad-tombo" required placeholder="Ex: TB-1007" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Categoria / Curso *</label>
+                        <select id="cad-categoria" required class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs">
+                            <option value="Técnico Dev. Sistemas">Técnico Dev. Sistemas</option>
+                            <option value="Técnico Adm.">Técnico Adm.</option>
+                            <option value="Ensino Médio">Ensino Médio</option>
+                            <option value="UEL/UEM">UEL/UEM</option>
+                            <option value="Mangás">Mangás</option>
+                            <option value="Literatura">Literatura</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Título do Livro *</label>
+                    <input type="text" id="cad-titulo" required placeholder="Título completo" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Autor *</label>
+                    <input type="text" id="cad-autor" required placeholder="Nome do autor(a)" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs">
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Exemplares Totais *</label>
+                        <input type="number" id="cad-exemplares" min="1" value="3" required class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Localização na Estante *</label>
+                        <input type="text" id="cad-localizacao" required placeholder="Ex: Estante A2 - P3" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Sinopse Resumida</label>
+                    <textarea id="cad-sinopse" rows="2" placeholder="Resumo do conteúdo..." class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs"></textarea>
+                </div>
+
+                <button type="submit" class="w-full py-2.5 bg-prGreen hover:bg-emerald-700 text-white font-bold rounded-xl text-xs shadow transition">
+                    Salvar Livro no Banco de Dados
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL DE COMPROVANTE DIGITAL DE DEVOLUÇÃO -->
+    <div id="modal-comprovante" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 border border-slate-200 text-center space-y-4">
+            <div class="w-16 h-16 bg-emerald-100 text-prGreen rounded-full flex items-center justify-center mx-auto text-2xl font-bold">
+                <i class="fa-solid fa-circle-check"></i>
+            </div>
+            
+            <div>
+                <span class="text-xs font-bold text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full uppercase tracking-wider">Devolução Confirmada</span>
+                <h3 class="text-xl font-black text-prNavy mt-2">Comprovante Digital</h3>
+                <p class="text-xs text-slate-500">Colégio Estadual Unidade Polo - Arapongas PR</p>
+            </div>
+
+            <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 text-left text-xs space-y-2">
+                <div class="flex justify-between border-b border-slate-200 pb-1">
+                    <span class="text-slate-500">Protocolo:</span>
+                    <span id="comp-proto" class="font-bold text-prNavy font-mono">---</span>
+                </div>
+                <div class="flex justify-between border-b border-slate-200 pb-1">
+                    <span class="text-slate-500">CGM Aluno:</span>
+                    <span id="comp-cgm" class="font-bold text-slate-800">---</span>
+                </div>
+                <div class="flex justify-between border-b border-slate-200 pb-1">
+                    <span class="text-slate-500">Tombo / Livro:</span>
+                    <span id="comp-tombo" class="font-bold text-slate-800">---</span>
+                </div>
+                <div class="flex justify-between border-b border-slate-200 pb-1">
+                    <span class="text-slate-500">Estado na Entrega:</span>
+                    <span id="comp-estado" class="font-bold text-emerald-700">---</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-slate-500">Data / Hora:</span>
+                    <span id="comp-data" class="font-bold text-slate-800">---</span>
+                </div>
+            </div>
+
+            <!-- QR Code Simulado SVG -->
+            <div class="bg-white p-3 rounded-xl border border-slate-200 inline-block">
+                <svg class="w-24 h-24 mx-auto" viewBox="0 0 100 100">
+                    <rect width="100" height="100" fill="#ffffff" />
+                    <path d="M0,0 h30 v30 h-30 z M10,10 h10 v10 h-10 z" fill="#0B3C5D"/>
+                    <path d="M70,0 h30 v30 h-30 z M80,10 h10 v10 h-10 z" fill="#0B3C5D"/>
+                    <path d="M0,70 h30 v30 h-30 z M10,80 h10 v10 h-10 z" fill="#0B3C5D"/>
+                    <rect x="40" y="10" width="15" height="15" fill="#008A45"/>
+                    <rect x="40" y="40" width="20" height="20" fill="#0B3C5D"/>
+                    <rect x="70" y="40" width="20" height="10" fill="#008A45"/>
+                    <rect x="10" y="40" width="20" height="10" fill="#0B3C5D"/>
+                    <rect x="40" y="70" width="15" height="20" fill="#008A45"/>
+                    <rect x="70" y="70" width="20" height="20" fill="#0B3C5D"/>
+                </svg>
+                <p class="text-[10px] text-slate-400 mt-1">Autenticação Digital SEED-PR</p>
+            </div>
+
+            <button onclick="closeComprovanteModal()" class="w-full py-2.5 bg-prNavy hover:bg-slate-800 text-white font-bold rounded-xl text-xs transition">
+                Concluir e Fechar
+            </button>
+        </div>
+    </div>
+
+
+    <!-- SCRIPT LOGIC JAVASCRIPT -->
+    <script>
+        // ESTADO GLOBAL & SUPABASE
+        let supabaseClient = null;
+        let isConnectedSupabase = false;
+
+        // DADOS MOCK INICIAIS PARA MODO LOCAL
+        const defaultLivros = [
+            { id: "1", tombo: "TB-1001", titulo: "Algoritmos e Estruturas de Dados", autor: "Ana Fernanda Gomes", categoria: "Técnico Dev. Sistemas", exemplares_totais: 5, exemplares_disponiveis: 4, localizacao: "Estante A1 - Prateleira 2", sinopse: "Guia completo sobre lógica de programação, matrizes, busca e ordenação de dados." },
+            { id: "2", tombo: "TB-1002", titulo: "Dom Casmurro", autor: "Machado de Assis", categoria: "UEL/UEM", exemplares_totais: 8, exemplares_disponiveis: 6, localizacao: "Estante B2 - Prateleira 1", sinopse: "Um dos maiores clássicos da literatura brasileira com as dúvidas de Bento Santiago sobre Capitu." },
+            { id: "3", tombo: "TB-1003", titulo: "Gestão Financeira e Contabilidade Básica", autor: "Carlos Eduardo Silva", categoria: "Técnico Adm.", exemplares_totais: 4, exemplares_disponiveis: 3, localizacao: "Estante C1 - Prateleira 3", sinopse: "Fundamentos essenciais de contabilidade, balanço patrimonial e controle orçamentário." },
+            { id: "4", tombo: "TB-1004", titulo: "A Hora da Estrela", autor: "Clarice Lispector", categoria: "Ensino Médio", exemplares_totais: 6, exemplares_disponiveis: 2, localizacao: "Estante B1 - Prateleira 4", sinopse: "A inesquecível história de Macabéa e a narrativa lírica de Clarice Lispector." },
+            { id: "5", tombo: "TB-1005", titulo: "Clean Code: Código Limpo", autor: "Robert C. Martin", categoria: "Técnico Dev. Sistemas", exemplares_totais: 3, exemplares_disponiveis: 1, localizacao: "Estante A1 - Prateleira 1", sinopse: "Boas práticas, refatoração e arquitetura de software para desenvolvedores de qualidade." },
+            { id: "6", tombo: "TB-1006", titulo: "Attack on Titan - Vol. 01", autor: "Hajime Isayama", categoria: "Mangás", exemplares_totais: 10, exemplares_disponiveis: 7, localizacao: "Estante D3 - Prateleira 1", sinopse: "A humanidade luta dentro das muralhas contra gigantes misteriosos." }
+        ];
+
+        const defaultEmprestimos = [
+            { id: "e1", cgm: "20241098", aluno_nome: "Lucas Andrade Santos", turma: "3º Técnico Dev. Sistemas", tombo: "TB-1001", data_emprestimo: "2026-10-10", data_devolucao_prevista: "2026-10-28", status: "Ativo", renovacoes: 0 },
+            { id: "e2", cgm: "20241098", aluno_nome: "Lucas Andrade Santos", turma: "3º Técnico Dev. Sistemas", tombo: "TB-1005", data_emprestimo: "2026-10-01", data_devolucao_prevista: "2026-10-22", status: "Ativo", renovacoes: 1 },
+            { id: "e3", cgm: "20242201", aluno_nome: "Beatriz Oliveira Ramos", turma: "2º Ensino Médio A", tombo: "TB-1002", data_emprestimo: "2026-10-15", data_devolucao_prevista: "2026-10-29", status: "Ativo", renovacoes: 0 }
+        ];
+
+        const defaultResenhas = [
+            { id: "r1", aluno_nome: "Lucas Andrade Santos", turma: "3º Técnico Dev. Sistemas", livro_titulo: "Clean Code: Código Limpo", avaliacao: 5, comentario: "Livro indispensável para o nosso curso técnico! Mudou minha percepção sobre boas práticas de programação.", created_at: "2026-10-18T14:30:00Z" },
+            { id: "r2", aluno_nome: "Beatriz Oliveira Ramos", turma: "2º Ensino Médio A", livro_titulo: "Dom Casmurro", avaliacao: 4, comentario: "Ótima leitura para se preparar para o vestibular da UEL. Recomendo prestar atenção na ambientação do Rio antigo.", created_at: "2026-10-20T09:15:00Z" }
+        ];
+
+        // SCRIPT SQL MASTER PARA EXIBIÇÃO NO MODAL
+        const sqlSchemaScript = `-- ========================================================
+-- SCRIPT DE CRIAÇÃO DO BANCO DE DADOS SUPABASE
+-- PORTAL BIBLIOTECA - COLÉGIO ESTADUAL UNIDADE POLO
+-- ARAPONGAS - PARANÁ (SEED-PR / NRE APUCARANA)
+-- ========================================================
+
+-- 1. TABELA DE LIVROS DO ACERVO
+CREATE TABLE IF NOT EXISTS public.livros (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    tombo VARCHAR(30) UNIQUE NOT NULL,
+    titulo VARCHAR(255) NOT NULL,
+    autor VARCHAR(255) NOT NULL,
+    categoria VARCHAR(100) NOT NULL,
+    exemplares_totais INT NOT NULL DEFAULT 1,
+    exemplares_disponiveis INT NOT NULL DEFAULT 1,
+    localizacao VARCHAR(100) NOT NULL,
+    capa TEXT,
+    sinopse TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- 2. TABELA DE EMPRÉSTIMOS DE LIVROS
+CREATE TABLE IF NOT EXISTS public.emprestimos (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    cgm VARCHAR(30) NOT NULL,
+    aluno_nome VARCHAR(255) NOT NULL,
+    turma VARCHAR(100) NOT NULL,
+    tombo VARCHAR(30) NOT NULL,
+    data_emprestimo DATE DEFAULT CURRENT_DATE,
+    data_devolucao_prevista DATE NOT NULL,
+    status VARCHAR(30) DEFAULT 'Ativo',
+    renovacoes INT DEFAULT 0,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- 3. TABELA DE REGISTRO DE DEVOLUÇÕES
+CREATE TABLE IF NOT EXISTS public.devolucoes (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    protocolo VARCHAR(60) UNIQUE NOT NULL,
+    cgm VARCHAR(30) NOT NULL,
+    tombo VARCHAR(30) NOT NULL,
+    estado_conservacao VARCHAR(50) NOT NULL,
+    data_devolucao TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    observacoes TEXT
+);
+
+-- 4. TABELA DE RESENHAS DOS ALUNOS
+CREATE TABLE IF NOT EXISTS public.resenhas (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    aluno_nome VARCHAR(255) NOT NULL,
+    turma VARCHAR(100) NOT NULL,
+    livro_titulo VARCHAR(255) NOT NULL,
+    avaliacao INT CHECK (avaliacao >= 1 AND avaliacao <= 5),
+    comentario TEXT NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- POLÍTICAS DE ACESSO PÚBLICO (RLS)
+ALTER TABLE public.livros ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.emprestimos ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.devolucoes ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.resenhas ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Acesso Publico Livros" ON public.livros FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Acesso Publico Emprestimos" ON public.emprestimos FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Acesso Publico Devolucoes" ON public.devolucoes FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Acesso Publico Resenhas" ON public.resenhas FOR ALL USING (true) WITH CHECK (true);
+
+-- ========================================================
+-- SEED DATA (INSERÇÃO DE DADOS DE DEMONSTRAÇÃO)
+-- ========================================================
+
+INSERT INTO public.livros (tombo, titulo, autor, categoria, exemplares_totais, exemplares_disponiveis, localizacao, sinopse) VALUES
+('TB-1001', 'Algoritmos e Estruturas de Dados', 'Ana Fernanda Gomes', 'Técnico Dev. Sistemas', 5, 4, 'Estante A1 - Prateleira 2', 'Guia prático sobre lógica, matrizes e algoritmia.'),
+('TB-1002', 'Dom Casmurro', 'Machado de Assis', 'UEL/UEM', 8, 6, 'Estante B2 - Prateleira 1', 'Um dos maiores clássicos da literatura brasileira.'),
+('TB-1003', 'Gestão Financeira e Contabilidade Básica', 'Carlos Eduardo Silva', 'Técnico Adm.', 4, 3, 'Estante C1 - Prateleira 3', 'Balanço patrimonial e controle orçamentário.'),
+('TB-1004', 'A Hora da Estrela', 'Clarice Lispector', 'Ensino Médio', 6, 2, 'Estante B1 - Prateleira 4', 'A saga marcante de Macabéa.'),
+('TB-1005', 'Clean Code: Código Limpo', 'Robert C. Martin', 'Técnico Dev. Sistemas', 3, 1, 'Estante A1 - Prateleira 1', 'Boas práticas para desenvolvimento de software.'),
+('TB-1006', 'Attack on Titan - Vol. 01', 'Hajime Isayama', 'Mangás', 10, 7, 'Estante D3 - Prateleira 1', 'Luta da humanidade contra gigantes misteriosos.');
+
+INSERT INTO public.emprestimos (cgm, aluno_nome, turma, tombo, data_emprestimo, data_devolucao_prevista, status, renovacoes) VALUES
+('20241098', 'Lucas Andrade Santos', '3º Técnico Dev. Sistemas', 'TB-1001', CURRENT_DATE - 5, CURRENT_DATE + 9, 'Ativo', 0),
+('20241098', 'Lucas Andrade Santos', '3º Técnico Dev. Sistemas', 'TB-1005', CURRENT_DATE - 12, CURRENT_DATE + 2, 'Ativo', 1),
+('20242201', 'Beatriz Oliveira Ramos', '2º Ensino Médio A', 'TB-1002', CURRENT_DATE - 3, CURRENT_DATE + 11, 'Ativo', 0);
+
+INSERT INTO public.resenhas (aluno_nome, turma, livro_titulo, avaliacao, comentario) VALUES
+('Lucas Andrade Santos', '3º Técnico Dev. Sistemas', 'Clean Code: Código Limpo', 5, 'Livro fundamental para quem cursa Dev. Sistemas! Mudou minha percepção sobre programação.'),
+('Beatriz Oliveira Ramos', '2º Ensino Médio A', 'Dom Casmurro', 4, 'Excelente para se preparar para o vestibular da UEL!');
+`;
+
+        // INITIALIZATION
+        window.addEventListener('DOMContentLoaded', () => {
+            initLocalStorageDefaults();
+            checkAndInitSupabase();
+            renderAllData();
+            document.getElementById('sql-code-block').innerText = sqlSchemaScript;
+        });
+
+        // INICIALIZAR LOCAL STORAGE SE VAZIO
+        function initLocalStorageDefaults() {
+            if (!localStorage.getItem('polo_livros')) {
+                localStorage.setItem('polo_livros', JSON.stringify(defaultLivros));
+            }
+            if (!localStorage.getItem('polo_emprestimos')) {
+                localStorage.setItem('polo_emprestimos', JSON.stringify(defaultEmprestimos));
+            }
+            if (!localStorage.getItem('polo_resenhas')) {
+                localStorage.setItem('polo_resenhas', JSON.stringify(defaultResenhas));
+            }
+            if (!localStorage.getItem('polo_devolucoes')) {
+                localStorage.setItem('polo_devolucoes', JSON.stringify([]));
+            }
+        }
+
+        // SUPABASE CONNECTION MANAGEMENT
+        function checkAndInitSupabase() {
+            const url = localStorage.getItem('supabase_url');
+            const key = localStorage.getItem('supabase_key');
+
+            if (url && key && window.supabase) {
+                try {
+                    supabaseClient = window.supabase.createClient(url, key);
+                    isConnectedSupabase = true;
+                    updateStatusBadge(true);
+                    document.getElementById('cfg-url').value = url;
+                    document.getElementById('cfg-key').value = key;
+                } catch (e) {
+                    console.error("Erro ao inicializar Supabase:", e);
+                    isConnectedSupabase = false;
+                    updateStatusBadge(false);
+                }
+            } else {
+                isConnectedSupabase = false;
+                updateStatusBadge(false);
+            }
+        }
+
+        function updateStatusBadge(connected) {
+            const dot = document.getElementById('status-dot');
+            const text = document.getElementById('status-text');
+            const badgeBtn = document.getElementById('status-badge-btn');
+
+            if (connected) {
+                dot.className = "w-2 h-2 rounded-full bg-emerald-400 animate-pulse";
+                text.innerText = "🟢 Conectado ao Supabase";
+                badgeBtn.className = "flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 hover:bg-emerald-500/30 transition";
+            } else {
+                dot.className = "w-2 h-2 rounded-full bg-amber-400 animate-pulse";
+                text.innerText = "🟡 Modo de Demonstração (Local)";
+                badgeBtn.className = "flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-500/20 text-amber-300 border border-amber-500/30 hover:bg-amber-500/30 transition";
+            }
+        }
+
+        async function testSupabaseConnection() {
+            const url = document.getElementById('cfg-url').value.trim();
+            const key = document.getElementById('cfg-key').value.trim();
+            const msgBox = document.getElementById('cfg-status-message');
+
+            if (!url || !key) {
+                showMsgBox(msgBox, "Por favor, preencha a URL e a Anon Key.", "error");
+                return;
+            }
+
+            try {
+                const tempClient = window.supabase.createClient(url, key);
+                const { data, error } = await tempClient.from('livros').select('id').limit(1);
+                
+                if (error) throw error;
+
+                showMsgBox(msgBox, "✨ Conexão realizada com sucesso no Supabase!", "success");
+            } catch (err) {
+                showMsgBox(msgBox, "Falha na conexão: " + (err.message || "Verifique a URL e Key"), "error");
+            }
+        }
+
+        function saveSupabaseConfig() {
+            const url = document.getElementById('cfg-url').value.trim();
+            const key = document.getElementById('cfg-key').value.trim();
+
+            if (!url || !key) {
+                showToast("Por favor preencha todos os campos do Supabase.", "warning");
+                return;
+            }
+
+            localStorage.setItem('supabase_url', url);
+            localStorage.setItem('supabase_key', key);
+            checkAndInitSupabase();
+            closeConfigModal();
+            renderAllData();
+            showToast("Configurações do Supabase salvas e conectadas!", "success");
+        }
+
+        function resetToDemoMode() {
+            localStorage.removeItem('supabase_url');
+            localStorage.removeItem('supabase_key');
+            supabaseClient = null;
+            isConnectedSupabase = false;
+            updateStatusBadge(false);
+            closeConfigModal();
+            renderAllData();
+            showToast("Modo de Demonstração (Local) ativado com sucesso.", "info");
+        }
+
+        function showMsgBox(el, msg, type) {
+            el.classList.remove('hidden', 'bg-red-100', 'text-red-700', 'bg-emerald-100', 'text-emerald-700');
+            if (type === 'success') {
+                el.classList.add('bg-emerald-100', 'text-emerald-700');
+            } else {
+                el.classList.add('bg-red-100', 'text-red-700');
+            }
+            el.innerText = msg;
+        }
+
+        // RENDERIZAÇÃO COMPLETA
+        async function renderAllData() {
+            await renderLivros();
+            await renderStats();
+            await renderResenhas();
+        }
+
+        // LIVROS / ACERVO
+        async function getLivrosData() {
+            if (isConnectedSupabase && supabaseClient) {
+                try {
+                    const { data, error } = await supabaseClient.from('livros').select('*').order('created_at', { ascending: false });
+                    if (!error && data && data.length > 0) return data;
+                } catch (e) {
+                    console.warn("Erro ao buscar no Supabase, usando local storage:", e);
+                }
+            }
+            return JSON.parse(localStorage.getItem('polo_livros') || '[]');
+        }
+
+        async function renderLivros() {
+            const books = await getLivrosData();
+            const searchVal = document.getElementById('search-input').value.toLowerCase().trim();
+            const catVal = document.getElementById('category-filter').value;
+
+            const grid = document.getElementById('books-grid');
+            grid.innerHTML = '';
+
+            const filtered = books.filter(b => {
+                const matchSearch = b.titulo.toLowerCase().includes(searchVal) ||
+                                    b.autor.toLowerCase().includes(searchVal) ||
+                                    b.tombo.toLowerCase().includes(searchVal);
+                const matchCat = catVal === 'TODOS' || b.categoria === catVal;
+                return matchSearch && matchCat;
+            });
+
+            if (filtered.length === 0) {
+                grid.innerHTML = `
+                    <div class="col-span-full text-center py-12 bg-white rounded-2xl border border-slate-200">
+                        <i class="fa-solid fa-book-open-reader text-4xl text-slate-300 mb-2"></i>
+                        <p class="text-slate-500 font-medium text-sm">Nenhum livro encontrado com esses parâmetros.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            filtered.forEach(b => {
+                const avail = b.exemplares_disponiveis > 0;
+                const badgeColor = avail ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800';
+                
+                grid.innerHTML += `
+                    <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-200/80 hover:shadow-md transition flex flex-col justify-between space-y-4">
+                        <div class="space-y-2">
+                            <div class="flex justify-between items-start gap-2">
+                                <span class="px-2.5 py-1 rounded-md bg-slate-100 text-slate-700 text-xs font-bold font-mono">${b.tombo}</span>
+                                <span class="px-2.5 py-1 rounded-full text-xs font-bold ${badgeColor}">
+                                    ${b.exemplares_disponiveis} / ${b.exemplares_totais} disponíveis
+                                </span>
+                            </div>
+                            
+                            <h3 class="font-bold text-slate-800 text-base leading-snug line-clamp-2">${b.titulo}</h3>
+                            <p class="text-xs text-slate-500 font-medium flex items-center gap-1">
+                                <i class="fa-solid fa-feather text-amber-500"></i> ${b.autor}
+                            </p>
+                            
+                            <div class="pt-1 flex flex-wrap gap-1">
+                                <span class="text-[11px] bg-prNavy/10 text-prNavy px-2 py-0.5 rounded-md font-semibold">${b.categoria}</span>
+                            </div>
+
+                            <p class="text-xs text-slate-600 line-clamp-2 pt-1 leading-relaxed">${b.sinopse || 'Sem sinopse disponível.'}</p>
+                        </div>
+
+                        <div class="pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
+                            <span class="text-slate-500 flex items-center gap-1 font-medium">
+                                <i class="fa-solid fa-location-dot text-rose-500"></i> ${b.localizacao}
+                            </span>
+                            <button onclick="preencherDevolucaoDirect('${b.tombo}')" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-lg transition">
+                                Devolver/Emprestar
+                            </button>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        function filterBooks() {
+            renderLivros();
+        }
+
+        function preencherDevolucaoDirect(tombo) {
+            switchTab('devolucao');
+            document.getElementById('dev-tombo').value = tombo;
+        }
+
+        // RESENHAS
+        async function getResenhasData() {
+            if (isConnectedSupabase && supabaseClient) {
+                try {
+                    const { data, error } = await supabaseClient.from('resenhas').select('*').order('created_at', { ascending: false });
+                    if (!error && data && data.length > 0) return data;
+                } catch (e) {
+                    console.warn("Erro ao buscar resenhas no Supabase:", e);
+                }
+            }
+            return JSON.parse(localStorage.getItem('polo_resenhas') || '[]');
+        }
+
+        async function renderResenhas() {
+            const resenhas = await getResenhasData();
+            const container = document.getElementById('resenhas-container');
+            container.innerHTML = '';
+
+            if (resenhas.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-8 bg-white rounded-2xl border border-slate-200 text-slate-400">
+                        Nenhuma resenha enviada ainda. Seja o primeiro a publicar!
+                    </div>
+                `;
+                return;
+            }
+
+            resenhas.forEach(r => {
+                const stars = '⭐'.repeat(r.avaliacao);
+                container.innerHTML += `
+                    <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 space-y-2">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <h4 class="font-bold text-slate-800 text-sm">${r.aluno_nome}</h4>
+                                <p class="text-xs text-slate-500">${r.turma}</p>
+                            </div>
+                            <span class="text-sm">${stars}</span>
+                        </div>
+                        <p class="text-xs font-bold text-prNavy bg-slate-50 p-2 rounded-lg border border-slate-100">📖 Livro: ${r.livro_titulo}</p>
+                        <p class="text-xs text-slate-600 leading-relaxed italic">"${r.comentario}"</p>
+                    </div>
+                `;
+            });
+        }
+
+        async function handleNovaResenha(e) {
+            e.preventDefault();
+            const nome = document.getElementById('res-nome').value.trim();
+            const turma = document.getElementById('res-turma').value.trim();
+            const livro = document.getElementById('res-livro').value.trim();
+            const nota = parseInt(document.getElementById('res-nota').value);
+            const comentario = document.getElementById('res-comentario').value.trim();
+
+            const novaResenha = {
+                aluno_nome: nome,
+                turma: turma,
+                livro_titulo: livro,
+                avaliacao: nota,
+                comentario: comentario,
+                created_at: new Date().toISOString()
+            };
+
+            if (isConnectedSupabase && supabaseClient) {
+                try {
+                    const { error } = await supabaseClient.from('resenhas').insert([novaResenha]);
+                    if (error) throw error;
+                    showToast("Resenha salva no banco Supabase com sucesso!", "success");
+                } catch (err) {
+                    showToast("Erro ao salvar no Supabase. Salvando localmente...", "warning");
+                    saveResenhaLocal(novaResenha);
+                }
+            } else {
+                saveResenhaLocal(novaResenha);
+                showToast("Resenha salva no Modo Local!", "success");
+            }
+
+            e.target.reset();
+            renderResenhas();
+            renderStats();
+        }
+
+        function saveResenhaLocal(item) {
+            const list = JSON.parse(localStorage.getItem('polo_resenhas') || '[]');
+            item.id = "r_" + Date.now();
+            list.unshift(item);
+            localStorage.setItem('polo_resenhas', JSON.stringify(list));
+        }
+
+        // DEVOLUÇÃO DE LIVROS COM PERSISTÊNCIA
+        async function handleDevolucao(e) {
+            e.preventDefault();
+            const cgm = document.getElementById('dev-cgm').value.trim();
+            const tombo = document.getElementById('dev-tombo').value.trim().toUpperCase();
+            const estado = document.getElementById('dev-estado').value;
+            const obs = document.getElementById('dev-obs').value.trim();
+
+            const protocolo = "DEV-" + new Date().getFullYear() + "-" + Math.floor(100000 + Math.random() * 900000);
+
+            let livroEncontrado = null;
+
+            if (isConnectedSupabase && supabaseClient) {
+                try {
+                    // 1. Inserir em Devolucoes
+                    await supabaseClient.from('devolucoes').insert([{
+                        protocolo: protocolo,
+                        cgm: cgm,
+                        tombo: tombo,
+                        estado_conservacao: estado,
+                        observacoes: obs,
+                        data_devolucao: new Date().toISOString()
+                    }]);
+
+                    // 2. Atualizar status em Emprestimos
+                    await supabaseClient.from('emprestimos')
+                        .update({ status: 'Devolvido' })
+                        .match({ cgm: cgm, tombo: tombo, status: 'Ativo' });
+
+                    // 3. Incrementar exemplares_disponiveis em livros
+                    const { data: bData } = await supabaseClient.from('livros').select('*').eq('tombo', tombo).single();
+                    if (bData) {
+                        livroEncontrado = bData;
+                        await supabaseClient.from('livros')
+                            .update({ exemplares_disponiveis: bData.exemplares_disponiveis + 1 })
+                            .eq('id', bData.id);
+                    }
+                } catch (err) {
+                    console.error("Erro na devolução Supabase:", err);
+                }
+            }
+
+            // Sempre sincroniza fallback local se não achar ou no modo local
+            const livrosLocal = JSON.parse(localStorage.getItem('polo_livros') || '[]');
+            const idx = livrosLocal.findIndex(l => l.tombo.toUpperCase() === tombo);
+            if (idx !== -1) {
+                livrosLocal[idx].exemplares_disponiveis = Math.min(livrosLocal[idx].exemplares_totais, livrosLocal[idx].exemplares_disponiveis + 1);
+                localStorage.setItem('polo_livros', JSON.stringify(livrosLocal));
+                if (!livroEncontrado) livroEncontrado = livrosLocal[idx];
+            }
+
+            const emprestimosLocal = JSON.parse(localStorage.getItem('polo_emprestimos') || '[]');
+            const empIdx = emprestimosLocal.findIndex(e => e.cgm === cgm && e.tombo.toUpperCase() === tombo && e.status === 'Ativo');
+            if (empIdx !== -1) {
+                emprestimosLocal[empIdx].status = 'Devolvido';
+                localStorage.setItem('polo_emprestimos', JSON.stringify(emprestimosLocal));
+            }
+
+            // Exibir comprovante
+            document.getElementById('comp-proto').innerText = protocolo;
+            document.getElementById('comp-cgm').innerText = cgm;
+            document.getElementById('comp-tombo').innerText = (livroEncontrado ? livroEncontrado.titulo + " (" + tombo + ")" : tombo);
+            document.getElementById('comp-estado').innerText = estado;
+            document.getElementById('comp-data').innerText = new Date().toLocaleString('pt-BR');
+
+            document.getElementById('modal-comprovante').classList.remove('hidden');
+            e.target.reset();
+            renderAllData();
+            showToast("Devolução registrada com sucesso!", "success");
+        }
+
+        // PORTAL DO ALUNO POR CGM
+        async function buscarEmprestimosAluno() {
+            const cgm = document.getElementById('aluno-cgm-input').value.trim();
+            if (!cgm) {
+                showToast("Insira o CGM do aluno para consultar.", "warning");
+                return;
+            }
+
+            let emprestimos = [];
+            if (isConnectedSupabase && supabaseClient) {
+                try {
+                    const { data, error } = await supabaseClient.from('emprestimos').select('*').eq('cgm', cgm).eq('status', 'Ativo');
+                    if (!error && data) emprestimos = data;
+                } catch (e) {
+                    console.warn("Erro ao carregar do Supabase:", e);
+                }
+            }
+
+            if (emprestimos.length === 0) {
+                const local = JSON.parse(localStorage.getItem('polo_emprestimos') || '[]');
+                emprestimos = local.filter(e => e.cgm === cgm && e.status === 'Ativo');
+            }
+
+            const resDiv = document.getElementById('aluno-resultados');
+            const listDiv = document.getElementById('aluno-emprestimos-list');
+            
+            resDiv.classList.remove('hidden');
+
+            if (emprestimos.length > 0) {
+                document.getElementById('aluno-nome-display').innerText = emprestimos[0].aluno_nome;
+                document.getElementById('aluno-turma-display').innerText = `Turma: ${emprestimos[0].turma} | CGM: ${cgm}`;
+                document.getElementById('aluno-count-badge').innerText = `${emprestimos.length} livro(s) pendente(s)`;
+
+                listDiv.innerHTML = '';
+                emprestimos.forEach(emp => {
+                    listDiv.innerHTML += `
+                        <div class="p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                            <div>
+                                <span class="text-xs font-mono font-bold text-prNavy bg-slate-100 px-2 py-0.5 rounded">${emp.tombo}</span>
+                                <p class="text-xs text-slate-500 mt-1">Devolução Prevista: <strong class="text-slate-800">${emp.data_devolucao_prevista}</strong></p>
+                                <p class="text-[11px] text-slate-400">Renovações efetuadas: ${emp.renovacoes || 0}/3</p>
+                            </div>
+                            <button onclick="renovarEmprestimo('${emp.id}', '${emp.cgm}', '${emp.tombo}')" class="px-3.5 py-1.5 bg-prGreen hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow transition flex items-center gap-1.5">
+                                <i class="fa-solid fa-rotate"></i> Renovar +7 Dias
+                            </button>
+                        </div>
+                    `;
+                });
+            } else {
+                document.getElementById('aluno-nome-display').innerText = "Estudante CGM: " + cgm;
+                document.getElementById('aluno-turma-display').innerText = "Sem pendências ativas";
+                document.getElementById('aluno-count-badge').innerText = "0 pendências";
+                listDiv.innerHTML = `<div class="p-6 text-center text-xs text-slate-500">Nenhum empréstimo ativo para este CGM.</div>`;
+            }
+        }
+
+        async function renovarEmprestimo(empId, cgm, tombo) {
+            let renovado = false;
+
+            if (isConnectedSupabase && supabaseClient) {
+                try {
+                    const { data: current } = await supabaseClient.from('emprestimos').select('*').eq('id', empId).single();
+                    if (current) {
+                        const nuevaFecha = new Date(current.data_devolucao_prevista);
+                        nuevaFecha.setDate(nuevaFecha.getDate() + 7);
+                        const fechaStr = nuevaFecha.toISOString().split('T')[0];
+
+                        await supabaseClient.from('emprestimos').update({
+                            data_devolucao_prevista: fechaStr,
+                            renovacoes: (current.renovacoes || 0) + 1
+                        }).eq('id', empId);
+                        renovado = true;
+                    }
+                } catch (e) {
+                    console.error("Erro ao renovar Supabase:", e);
+                }
+            }
+
+            // Atualização local
+            const local = JSON.parse(localStorage.getItem('polo_emprestimos') || '[]');
+            const idx = local.findIndex(e => e.cgm === cgm && e.tombo === tombo && e.status === 'Ativo');
+            if (idx !== -1) {
+                const dt = new Date(local[idx].data_devolucao_prevista);
+                dt.setDate(dt.getDate() + 7);
+                local[idx].data_devolucao_prevista = dt.toISOString().split('T')[0];
+                local[idx].renovacoes = (local[idx].renovacoes || 0) + 1;
+                localStorage.setItem('polo_emprestimos', JSON.stringify(local));
+                renovado = true;
+            }
+
+            if (renovado) {
+                showToast("Prazo de devolução renovado em +7 dias!", "success");
+                buscarEmprestimosAluno();
+            }
+        }
+
+        // CADASTRO DE NOVO LIVRO
+        async function handleCadastrarLivro(e) {
+            e.preventDefault();
+            const tombo = document.getElementById('cad-tombo').value.trim().toUpperCase();
+            const titulo = document.getElementById('cad-titulo').value.trim();
+            const autor = document.getElementById('cad-autor').value.trim();
+            const categoria = document.getElementById('cad-categoria').value;
+            const exemplares = parseInt(document.getElementById('cad-exemplares').value);
+            const localizacao = document.getElementById('cad-localizacao').value.trim();
+            const sinopse = document.getElementById('cad-sinopse').value.trim();
+
+            const novoLivro = {
+                tombo: tombo,
+                titulo: titulo,
+                autor: autor,
+                categoria: categoria,
+                exemplares_totais: exemplares,
+                exemplares_disponiveis: exemplares,
+                localizacao: localizacao,
+                sinopse: sinopse
+            };
+
+            if (isConnectedSupabase && supabaseClient) {
+                try {
+                    const { error } = await supabaseClient.from('livros').insert([novoLivro]);
+                    if (error) throw error;
+                    showToast("Livro inserido no Supabase!", "success");
+                } catch (err) {
+                    showToast("Erro no Supabase. Salvando em armazenamento local...", "warning");
+                    saveLivroLocal(novoLivro);
+                }
+            } else {
+                saveLivroLocal(novoLivro);
+                showToast("Livro cadastrado localmente!", "success");
+            }
+
+            closeCadastrarLivroModal();
+            e.target.reset();
+            renderAllData();
+        }
+
+        function saveLivroLocal(livro) {
+            const list = JSON.parse(localStorage.getItem('polo_livros') || '[]');
+            livro.id = "l_" + Date.now();
+            list.unshift(livro);
+            localStorage.setItem('polo_livros', JSON.stringify(list));
+        }
+
+        // STATS COMPUTATION
+        async function renderStats() {
+            const livros = await getLivrosData();
+            const resenhas = await getResenhasData();
+            
+            const totalObras = livros.length;
+            const disp = livros.reduce((acc, curr) => acc + (parseInt(curr.exemplares_disponiveis) || 0), 0);
+            const tot = livros.reduce((acc, curr) => acc + (parseInt(curr.exemplares_totais) || 0), 0);
+
+            document.getElementById('stat-total-obras').innerText = totalObras;
+            document.getElementById('stat-disponiveis').innerText = disp;
+            document.getElementById('stat-emprestados').innerText = (tot - disp);
+            document.getElementById('stat-resenhas').innerText = resenhas.length;
+        }
+
+        // TABS SWITCHING
+        function switchTab(tab) {
+            ['acervo', 'devolucao', 'aluno', 'resenhas'].forEach(t => {
+                const sec = document.getElementById(`sec-${t}`);
+                const btn = document.getElementById(`tab-${t}`);
+                
+                if (t === tab) {
+                    sec.classList.remove('hidden');
+                    btn.className = "nav-tab px-4 py-2.5 rounded-lg text-sm font-semibold flex items-center gap-2 whitespace-nowrap transition bg-prGreen text-white shadow";
+                } else {
+                    sec.classList.add('hidden');
+                    btn.className = "nav-tab px-4 py-2.5 rounded-lg text-sm font-medium flex items-center gap-2 whitespace-nowrap text-slate-300 hover:text-white hover:bg-white/10 transition";
+                }
+            });
+        }
+
+        // MODALS CONTROL
+        function openConfigModal() { document.getElementById('modal-config').classList.remove('hidden'); }
+        function closeConfigModal() { document.getElementById('modal-config').classList.add('hidden'); }
+        
+        function openSqlModal() { document.getElementById('modal-sql').classList.remove('hidden'); }
+        function closeSqlModal() { document.getElementById('modal-sql').classList.add('hidden'); }
+
+        function openCadastrarLivroModal() { document.getElementById('modal-cadastrar-livro').classList.remove('hidden'); }
+        function closeCadastrarLivroModal() { document.getElementById('modal-cadastrar-livro').classList.add('hidden'); }
+
+        function closeComprovanteModal() { document.getElementById('modal-comprovante').classList.add('hidden'); }
+
+        // COPY SQL SCRIPT
+        function copySqlCode() {
+            const codeText = document.getElementById('sql-code-block').innerText;
+            const textarea = document.createElement('textarea');
+            textarea.value = codeText;
+            document.body.appendChild(textarea);
+            textarea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textarea);
+            showToast("Script SQL copiado para a área de transferência!", "success");
+        }
+
+        // TOAST SYSTEM
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            
+            let bg = "bg-slate-800 text-white";
+            let icon = "fa-info-circle";
+            if (type === 'success') { bg = "bg-emerald-600 text-white"; icon = "fa-check-circle"; }
+            if (type === 'warning') { bg = "bg-amber-500 text-slate-950"; icon = "fa-exclamation-triangle"; }
+            if (type === 'error') { bg = "bg-rose-600 text-white"; icon = "fa-circle-xmark"; }
+
+            toast.className = `${bg} px-4 py-3 rounded-xl shadow-xl text-xs font-bold flex items-center gap-2 transition-all transform translate-y-2 opacity-0 pointer-events-auto max-w-sm`;
+            toast.innerHTML = `<i class="fa-solid ${icon}"></i> <span>${message}</span>`;
+
+            container.appendChild(toast);
+
+            setTimeout(() => {
+                toast.classList.remove('translate-y-2', 'opacity-0');
+            }, 10);
+
+            setTimeout(() => {
+                toast.classList.add('opacity-0', 'translate-y-2');
+                setTimeout(() => toast.remove(), 300);
+            }, 3500);
+        }
+    </script>
+</body>
+</html>
